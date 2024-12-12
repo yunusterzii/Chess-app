@@ -1,6 +1,7 @@
 export interface Piece {
     position: string;
-    image: HTMLImageElement;
+    image: any;
     type: string;
     color: string;
+    moveCount: number;
 }
