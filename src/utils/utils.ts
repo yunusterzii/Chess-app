@@ -80,10 +80,6 @@ export function createPiece(position: string, type: string, color: string, moveC
     )
 }
 
-export function range(start: number, end: number): number[] {
-    return Array.from({length: (end - start + 1)}, (_, i) => start + i);
-}
-
 export function toBoardPosition(position: number[]) {
     let column = position[1] + 96;
     return String.fromCharCode(column) + position[0].toString();

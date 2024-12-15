@@ -1,0 +1,28 @@
+.board {
+    width: 800px;
+    height: 800px;
+    background-image: url("../../../public/assets/board.png");
+    background-size: auto;
+    position: relative;
+}
+
+.piece {
+    width: 100px;
+    height: 100px;
+    position: absolute;
+    cursor: -webkit-grab;
+}
+
+.highlight {
+    width: 100px;
+    height: 100px;
+    position: absolute;
+    background-color: rgba(235, 97, 80, 0.8);
+}
+
+.hint {
+    width: 100px;
+    height: 100px;
+    position: absolute;
+    background-color: rgba(31, 83, 161, 0.8);
+}

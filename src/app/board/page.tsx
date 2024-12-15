@@ -1,26 +1,34 @@
 "use client"
 
+import styles from "./styles.module.css";
 import { useRef, useState } from "react";
-import Image from "next/image";
-import { getInitialBoard, range, createPiece } from "@/utils/utils";
+import { getInitialBoard, createPiece } from "@/utils/utils";
 import { getPossibleMoves } from "@/utils/move";
 import { Piece } from "../../../public/types/piece";
 import Background from "../../../public/assets/board.png";
+import Image from "next/image";
 
 export default function Board() {
     const initialBoard = getInitialBoard()
     const [board, setBoard]: any = useState(initialBoard);
-    const [bgColor, setBGColor] = useState("transparent");
+    const [hintSquares, setHintSquares]: any = useState([]);
+    const [highlightSquares, setHighlightSquares]: any = useState([]);
 
     const handleDragStart = (piece: Piece) => (event: React.DragEvent<HTMLImageElement>) => {
+        setHintSquares(getPossibleMoves(piece, board).map(square => 
+            <div key={square} className={styles.hint} style={{transform: squareToTranslate(square)}}></div>
+        ))
         event.dataTransfer.setData('application/json', JSON.stringify(piece));
     }
 
     const handleDrop = (event: React.DragEvent<HTMLDivElement>) => {
         event.preventDefault();
         const piece = JSON.parse(event.dataTransfer.getData('application/json'));
-        const position = event.currentTarget.getAttribute('id');
-        if (position) makeMove(piece, position);
+        const position = coordinatesToSquare(event.clientX, event.clientY);
+        if (position) {
+            makeMove(piece, position);
+            setHintSquares([]);
+        } 
     }
 
     const handleDragOver = (event: React.DragEvent<HTMLImageElement>) => {
@@ -29,20 +37,32 @@ export default function Board() {
 
     const handleContextMenu = (event: React.MouseEvent) => {
         event.preventDefault();
-        // let element: any = event.target;
-        // element.style.backgroundColor = "rgba(235, 97, 80, 0.8)";
-        // setBGColor("rgba(235, 97, 80, 0.8)");
+        const square = coordinatesToSquare(event.clientX, event.clientY);
+        setHighlightSquares([...highlightSquares, 
+        <div key={highlightSquares.length} className={styles.highlight} style={{transform: squareToTranslate(square)}}></div>])
     }
 
-    const handleClick = (piece: Piece) => (event: React.MouseEvent) => {
-        // setBGColor("transparent");
-        console.log(piece);
-        console.log(getPossibleMoves(piece, board))
+    const handlePieceClick = (piece: Piece) => (event: React.MouseEvent) => {
+        event.stopPropagation();
+        if(hintSquares.length == 0) {
+            setHintSquares(getPossibleMoves(piece, board).map(square => 
+                <div key={square} className={styles.hint} style={{transform: squareToTranslate(square)}}></div>
+            ))
+        }
+        else {
+            setHintSquares([]);
+        }
+    }
+
+    const handleBoardClick = () => {
+        setHighlightSquares([]);
+        setHintSquares([]);
     }
 
     const makeMove = (piece: Piece, position: string) => {
         console.log(piece);
         let possibleMoves = getPossibleMoves(piece, board);
+        console.log(possibleMoves);
         if(possibleMoves.includes(position)) {
             let updatedBoard: any = board;
             updatedBoard[piece.position] = null;
@@ -51,6 +71,18 @@ export default function Board() {
             updatedBoard[position] = piece;
             setBoard({...updatedBoard});
         }
+    }
+
+    const squareToTranslate = (square: string) => {
+        let column = (8 - (square[0].charCodeAt(0) - 96)) * 100;
+        let row = (Number(square[1]) - 1) * 100;
+        return `translate(${column}%, ${row}%)`;
+    }
+
+    const coordinatesToSquare = (clientX: number, clientY: number) => {
+        let row = Math.floor(clientY / 100) + 1;
+        let column = String.fromCharCode((7 - (Math.floor(clientX / 100)) + 97));
+        return `${column}${row}`;
     }
 
     const test = () => {
@@ -66,25 +98,25 @@ export default function Board() {
 
     return(
         <div className="container">
-            <div className="board" style={{width: '800px', height: '800px', backgroundImage: `url(${Background.src})`, backgroundSize: 'auto'}}>
-                {range(0, 8).map(index => (
-                    <div key={index} className="row" style={{display: 'flex', justifyContent: 'center', backgroundColor: bgColor}}>
-                        {Object.keys(board).slice(index*8, (index+1)*8).map(square =>
-                            <div
-                                key={square}
-                                className={square[0]} 
-                                id={square}
-                                style={{width: '100px', height: '100px', position: 'relative', backgroundColor: "inherit"}}
-                                onDragStart={handleDragStart(board[square])}
-                                onDrop={handleDrop}
-                                onDragOver={handleDragOver}
-                                onContextMenu={handleContextMenu}
-                                onClick={handleClick(board[square])}>
-                                {board[square] && <Image src={board[square].image} fill alt=""></Image>}
-                            </div>
-                        )}
+            <div 
+                className={styles.board} 
+                onDrop={handleDrop}
+                onDragOver={handleDragOver}
+                onContextMenu={handleContextMenu}
+                onClick={handleBoardClick}>
+                {Object.keys(board).map(square =>
+                    board[square] && <div
+                        key={square}
+                        className={styles.piece} 
+                        id={square}
+                        style={{transform: squareToTranslate(board[square].position)}}
+                        onDragStart={handleDragStart(board[square])}
+                        onClick={handlePieceClick(board[square])}>
+                        <Image src={board[square].image} fill alt=""></Image>
                     </div>
-                ))}
+                )}
+                {highlightSquares}
+                {hintSquares}
             </div>
             <button onClick={test}>click</button>
         </div>
