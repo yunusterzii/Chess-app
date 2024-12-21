@@ -5,7 +5,6 @@ import { useRef, useState } from "react";
 import { getInitialBoard, createPiece } from "@/utils/utils";
 import { getPossibleMoves } from "@/utils/move";
 import { Piece } from "../../../public/types/piece";
-import Background from "../../../public/assets/board.png";
 import Image from "next/image";
 
 export default function Board() {
@@ -38,20 +37,24 @@ export default function Board() {
     const handleContextMenu = (event: React.MouseEvent) => {
         event.preventDefault();
         const square = coordinatesToSquare(event.clientX, event.clientY);
+        if(highlightSquares.map((el: any) => el.key).includes(square)) return;
         setHighlightSquares([...highlightSquares, 
-        <div key={highlightSquares.length} className={styles.highlight} style={{transform: squareToTranslate(square)}}></div>])
+        <div key={square} className={styles.highlight} style={{transform: squareToTranslate(square)}}></div>])
     }
 
     const handlePieceClick = (piece: Piece) => (event: React.MouseEvent) => {
         event.stopPropagation();
-        if(hintSquares.length == 0) {
-            setHintSquares(getPossibleMoves(piece, board).map(square => 
-                <div key={square} className={styles.hint} style={{transform: squareToTranslate(square)}}></div>
-            ))
-        }
-        else {
-            setHintSquares([]);
-        }
+        // console.log(getPossibleMoves(piece, board));
+        // console.log(hintSquares.map((el: any) => el.key));
+        // if(getPossibleMoves(piece, board) === hintSquares.map((el: any) => el.key)) {
+        //     console.log("girdi");
+        //     setHintSquares([]);
+        //     return;
+        // }
+
+        setHintSquares(getPossibleMoves(piece, board).map(square => 
+            <div key={square} className={styles.hint} style={{transform: squareToTranslate(square)}}></div>
+        ))
     }
 
     const handleBoardClick = () => {
@@ -86,7 +89,7 @@ export default function Board() {
     }
 
     const test = () => {
-        let piece = createPiece("d5", "pawn", "black", 2);
+        let piece = createPiece("d5", "pawn", "black");
         let updatedBoard = board;
         updatedBoard[piece.position] = piece;
         setBoard({...updatedBoard});

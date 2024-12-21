@@ -70,13 +70,13 @@ export function getInitialBoard() {
     )
 }
 
-export function createPiece(position: string, type: string, color: string, moveCount?: number): Piece {
+export function createPiece(position: string, type: string, color: string): Piece {
     return({
         position: position,
         image: svgMap[`${color}-${type}`],
         type: type,
         color: color,
-        moveCount: moveCount ? moveCount : 0}
+        moveCount: 0}
     )
 }
 
