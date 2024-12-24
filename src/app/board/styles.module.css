@@ -11,6 +11,7 @@
     height: 100px;
     position: absolute;
     cursor: -webkit-grab;
+    z-index: 100;
 }
 
 .highlight {
@@ -25,4 +26,11 @@
     height: 100px;
     position: absolute;
     background-color: rgba(31, 83, 161, 0.8);
+}
+
+.check {
+    width: 100px;
+    height: 100px;
+    position: absolute;
+    background-color: rgba(216, 10, 44, 0.8);
 }

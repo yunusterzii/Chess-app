@@ -2,22 +2,24 @@
 
 import styles from "./styles.module.css";
 import { useRef, useState } from "react";
-import { getInitialBoard, createPiece } from "@/utils/utils";
+import { getInitialBoard } from "@/utils/utils";
 import { getPossibleMoves } from "@/utils/move";
-import { Piece } from "../../../public/types/piece";
+import { Piece, Board } from "../../../public/types/piece";
 import Image from "next/image";
 
-export default function Board() {
-    const initialBoard = getInitialBoard()
-    const [board, setBoard]: any = useState(initialBoard);
+export default function BoardComponent() {
+    const initialBoard: Board = getInitialBoard()
+    const [board, setBoard] = useState<Board>(initialBoard);
     const [hintSquares, setHintSquares]: any = useState([]);
     const [highlightSquares, setHighlightSquares]: any = useState([]);
+    const [checkSquare, setCheckSquare]: any = useState(null);
 
     const handleDragStart = (piece: Piece) => (event: React.DragEvent<HTMLImageElement>) => {
-        setHintSquares(getPossibleMoves(piece, board).map(square => 
-            <div key={square} className={styles.hint} style={{transform: squareToTranslate(square)}}></div>
-        ))
         event.dataTransfer.setData('application/json', JSON.stringify(piece));
+    }
+
+    const handleDragOver = (event: React.DragEvent<HTMLImageElement>) => {
+        event.preventDefault();
     }
 
     const handleDrop = (event: React.DragEvent<HTMLDivElement>) => {
@@ -30,10 +32,6 @@ export default function Board() {
         } 
     }
 
-    const handleDragOver = (event: React.DragEvent<HTMLImageElement>) => {
-        event.preventDefault();
-    }
-
     const handleContextMenu = (event: React.MouseEvent) => {
         event.preventDefault();
         const square = coordinatesToSquare(event.clientX, event.clientY);
@@ -44,17 +42,17 @@ export default function Board() {
 
     const handlePieceClick = (piece: Piece) => (event: React.MouseEvent) => {
         event.stopPropagation();
-        // console.log(getPossibleMoves(piece, board));
-        // console.log(hintSquares.map((el: any) => el.key));
-        // if(getPossibleMoves(piece, board) === hintSquares.map((el: any) => el.key)) {
-        //     console.log("girdi");
-        //     setHintSquares([]);
-        //     return;
-        // }
+        if(hintSquares.length > 0) {
+            setHintSquares([]);
+            return;
+        };
+        drawHintSquare(getPossibleMoves(piece, board));
+    }
 
-        setHintSquares(getPossibleMoves(piece, board).map(square => 
+    const drawHintSquare = (possibleMoves: string[]) => {
+        setHintSquares(possibleMoves.map(square => board[square]?.type !== "king" &&
             <div key={square} className={styles.hint} style={{transform: squareToTranslate(square)}}></div>
-        ))
+        ));
     }
 
     const handleBoardClick = () => {
@@ -62,18 +60,39 @@ export default function Board() {
         setHintSquares([]);
     }
 
+    const handleMouseDown = (piece: Piece) => (event: React.MouseEvent) => {
+        drawHintSquare(getPossibleMoves(piece, board));
+    }
+
     const makeMove = (piece: Piece, position: string) => {
         console.log(piece);
         let possibleMoves = getPossibleMoves(piece, board);
         console.log(possibleMoves);
-        if(possibleMoves.includes(position)) {
+        if(possibleMoves.includes(position) && board[position]?.type !== "king") {
             let updatedBoard: any = board;
             updatedBoard[piece.position] = null;
             piece.position = position;
             piece.moveCount = piece.moveCount + 1;
             updatedBoard[position] = piece;
             setBoard({...updatedBoard});
+            checkControl(piece);
         }
+    }
+
+    const checkControl = (piece: Piece) => {
+        for(let p of Object.values(board)) {
+            if(p === null || p.type === "king") continue;
+            if(p.color === piece.color) {
+                let possibleMoves = getPossibleMoves(p, board);
+                for(let square of possibleMoves) {
+                    if(board[square]?.type === "king") {
+                        setCheckSquare(<div key={square} className={styles.check} style={{transform: squareToTranslate(square)}}></div>);
+                        return;
+                    }
+                }
+            }
+        }
+        setCheckSquare(null);
     }
 
     const squareToTranslate = (square: string) => {
@@ -88,16 +107,6 @@ export default function Board() {
         return `${column}${row}`;
     }
 
-    const test = () => {
-        let piece = createPiece("d5", "pawn", "black");
-        let updatedBoard = board;
-        updatedBoard[piece.position] = piece;
-        setBoard({...updatedBoard});
-        getPossibleMoves(piece, board).forEach(move => {
-            let el: any = document.getElementById(move);
-            el.style.backgroundColor = "pink";
-        }) 
-    }
 
     return(
         <div className="container">
@@ -114,14 +123,15 @@ export default function Board() {
                         id={square}
                         style={{transform: squareToTranslate(board[square].position)}}
                         onDragStart={handleDragStart(board[square])}
-                        onClick={handlePieceClick(board[square])}>
+                        onClick={handlePieceClick(board[square])}
+                        onMouseDown={handleMouseDown(board[square])}>
                         <Image src={board[square].image} fill alt=""></Image>
                     </div>
                 )}
                 {highlightSquares}
                 {hintSquares}
+                {checkSquare}
             </div>
-            <button onClick={test}>click</button>
         </div>
     )
 }

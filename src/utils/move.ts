@@ -1,4 +1,4 @@
-import { Piece } from "../../public/types/piece";
+import { Piece, Board } from "../../public/types/piece";
 import { toBoardPosition, toNumberPosition } from "./utils";
 
 const moveTable: any = {
@@ -10,7 +10,7 @@ const moveTable: any = {
     "white-pawn": {moves: [1, 0], attack: [[1, 1], [1, -1]], doubleMove: [2, 0], iterative: false},
     "black-pawn": {moves: [-1, 0], attack: [[-1, 1], [-1, -1]], doubleMove: [-2, 0], iterative: false},
 }
-export function getPossibleMoves(piece: Piece, board: any): string[] {
+export function getPossibleMoves(piece: Piece, board: Board): string[] {
     let possibleMoves: string[] = [];
     let table = moveTable[piece.type];
     let moves = table ? table.moves : [];
@@ -37,15 +37,18 @@ export function getPossibleMoves(piece: Piece, board: any): string[] {
         let attackMoves = pawnAttackMoves(piece, board, table);
         if(attackMoves.length) possibleMoves.push(...attackMoves.map(attackMove => toBoardPosition(attackMove)));
         let enPassantMove = pawnEnPassantMove(piece, board);
-        console.log(enPassantMove);
         if(enPassantMove.length) possibleMoves.push(toBoardPosition(enPassantMove));
+    }
+    else if(piece.type === "king") { 
+        let preventedMoves = kingPreventedMoves(piece, board);
+        possibleMoves = possibleMoves.filter(move => !preventedMoves.includes(move));
     }
 
     return possibleMoves;
 }
 
 
-function pawnMove(pawn: Piece, board: any, table: any) {
+function pawnMove(pawn: Piece, board: Board, table: any) {
     let move = table.moves;
     let position = toNumberPosition(pawn.position);
     let dest = [position[0] + move[0], position[1]];
@@ -57,7 +60,7 @@ function pawnMove(pawn: Piece, board: any, table: any) {
     return [] 
 }
 
-function pawnDoubleMove(pawn: Piece, board: any, table: any): number[] {
+function pawnDoubleMove(pawn: Piece, board: Board, table: any): number[] {
     let doubleMove = table.doubleMove;
     let position = toNumberPosition(pawn.position);
     let dest = [position[0] + table.moves[0], position[1]];
@@ -72,7 +75,7 @@ function pawnDoubleMove(pawn: Piece, board: any, table: any): number[] {
     return []
 }
 
-function pawnAttackMoves(pawn: Piece, board: any, table: any): number[][] {
+function pawnAttackMoves(pawn: Piece, board: Board, table: any): number[][] {
     let moves: number[][] = [];
     let position = toNumberPosition(pawn.position);
     table.attack.forEach((move: number[]) => {
@@ -86,7 +89,7 @@ function pawnAttackMoves(pawn: Piece, board: any, table: any): number[][] {
     return moves;
 }
 
-function pawnEnPassantMove(pawn: Piece, board: any): number[] {
+function pawnEnPassantMove(pawn: Piece, board: Board): number[] {
     let moves = [[0, 1], [0, -1]];
     let position = toNumberPosition(pawn.position);
     for(let i = 0; i < moves.length; i++) {
@@ -96,9 +99,26 @@ function pawnEnPassantMove(pawn: Piece, board: any): number[] {
         let square = toBoardPosition(dest);
         console.log(square);
         if(board[square] && board[square].type === "pawn" && board[square].color != pawn.color) {   // TODO: should add board move count
-            console.log("gir");
             return dest;
         }
     }
     return [];
+}
+
+function kingPreventedMoves(king: Piece, board: Board): string[] {
+    let pieces = Object.values(board);
+    let opponentPieceMoves: string[] = [];
+    for(let piece of pieces) {
+        if(!piece || piece.color === king.color || piece.type === "king") continue;
+        let possibleMoves = getPossibleMoves(piece, board);
+        if(piece.type === "pawn") {
+            let attackMoves = pawnAttackMoves(piece, board, moveTable[piece.color + '-' + piece.type]);
+            let attackMovePositions = attackMoves.map(attackMove => toBoardPosition(attackMove));
+            possibleMoves = attackMovePositions;
+        }
+        for(let possibleMove of possibleMoves) {
+            opponentPieceMoves.push(possibleMove);
+        }
+    }
+    return [...new Set(opponentPieceMoves)];
 }

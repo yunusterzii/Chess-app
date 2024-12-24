@@ -5,3 +5,7 @@ export interface Piece {
     color: string;
     moveCount: number;
 }
+
+export interface Board { 
+    [key: string]: Piece | null;
+}
