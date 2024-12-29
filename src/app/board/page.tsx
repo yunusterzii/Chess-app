@@ -85,31 +85,31 @@ export default function BoardComponent() {
     }
 
     const handleCastle = (king: Piece, rook: Piece, board: Board) => {
-        let squares: string[] = [];
+        let positions: string[] = [];
         switch (rook.position) {
             case "a1":
-                squares = ["b1", "c1"];
+                positions = ["b1", "c1"];
                 break;
             case "h1":
-                squares = ["f1", "e1"];
+                positions = ["f1", "e1"];
                 break;
             case "a8":
-                squares = ["b8", "c8"];
+                positions = ["b8", "c8"];
                 break;
             case "h8":
-                squares = ["f8", "e8"];
+                positions = ["f8", "e8"];
                 break;
             default: 
                 break;
         }
 
         board[rook.position] = null;
-        rook.position = squares[1];
+        rook.position = positions[1];
         rook.moveCount = rook.moveCount + 1;
         board[rook.position] = rook;
 
         board[king.position] = null;
-        king.position = squares[0];
+        king.position = positions[0];
         king.moveCount = king.moveCount + 1;
         board[king.position] = king;
     }

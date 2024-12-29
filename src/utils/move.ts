@@ -10,6 +10,7 @@ const moveTable: any = {
     "king": {moves: [[1, 0], [-1, 0], [0, 1], [0, -1], [1, 1], [1, -1], [-1, 1], [-1, -1]], iterative: false},
     "white-pawn": {moves: [1, 0], attack: [[1, 1], [1, -1]], doubleMove: [2, 0], iterative: false},
     "black-pawn": {moves: [-1, 0], attack: [[-1, 1], [-1, -1]], doubleMove: [-2, 0], iterative: false},
+    "castle": {"a1": ["b1", "c1"], "h1": ["e1", "f1", "g1"], "a8": ["b8", "c8"], "h8": ["e8", "f8", "g8"]}
 }
 export function getPossibleMoves(piece: Piece, board: Board): string[] {
     let possibleMoves: string[] = [];
@@ -139,10 +140,17 @@ function pawnEnPassantMove(pawn: Piece, board: Board): number[] {
 }
 
 function kingCastleMoves(king: Piece, board: Board): string[] {
+    let castleSquares: string[] = [];
     if(king.moveCount !== 0) return [];
     let pieces = Object.values(board).filter(notNull);
-    let rooks = pieces.filter(piece => piece.type === "rook" 
-                                && piece.color === king.color
-                                && piece.moveCount === 0);
-    return rooks.map(rook => rook.position);
+    let rooks = pieces.filter(piece => piece.type === "rook" && piece.color === king.color && piece.moveCount === 0);
+    rooks.forEach(rook => {
+        let table = moveTable["castle"];
+        let positions: string[] = table[rook.position];
+        let oppColor = king.color === "white" ? "black" : "white";
+        let protectedSquares = getProtectedSquares(oppColor, board);
+        if(!positions.some(position => protectedSquares.includes(position) || board[position])) castleSquares.push(rook.position);
+    });
+
+    return castleSquares;
 }
