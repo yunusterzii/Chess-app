@@ -90,3 +90,15 @@ export function toNumberPosition(position: string) {
     let row = Number(position[1]);
     return [row, column];
 }
+
+export const squareToTranslate = (square: string) => {
+    let column = (8 - (square[0].charCodeAt(0) - 96)) * 100;
+    let row = (Number(square[1]) - 1) * 100;
+    return `translate(${column}%, ${row}%)`;
+}
+
+export const coordinatesToSquare = (clientX: number, clientY: number) => {
+    let row = Math.floor(clientY / 100) + 1;
+    let column = String.fromCharCode((7 - (Math.floor(clientX / 100)) + 97));
+    return `${column}${row}`;
+}

@@ -1,4 +1,5 @@
 import { Piece, Board } from "../../public/types/piece";
+import { notNull } from "../../public/types/guards";
 import { toBoardPosition, toNumberPosition } from "./utils";
 
 const moveTable: any = {
@@ -39,13 +40,46 @@ export function getPossibleMoves(piece: Piece, board: Board): string[] {
         let enPassantMove = pawnEnPassantMove(piece, board);
         if(enPassantMove.length) possibleMoves.push(toBoardPosition(enPassantMove));
     }
-    else if(piece.type === "king") { 
-        let preventedMoves = kingPreventedMoves(piece, board);
+    else if(piece.type === "king") {
+        let castleMoves = kingCastleMoves(piece, board);
+        possibleMoves.push(...castleMoves);
+        let color = piece.color === "white" ? "black" : "white";
+        let preventedMoves = getProtectedSquares(color, board);
         possibleMoves = possibleMoves.filter(move => !preventedMoves.includes(move));
     }
 
     return possibleMoves;
 }
+
+function getProtectedSquares(color: string, board: Board): string[] {
+    let pieces = Object.values(board).filter(notNull);
+    let protectedSquares: string[] = [];
+    for(let piece of pieces) {
+        if(piece.color != color) continue;
+        let table = moveTable[piece.type];
+        let moves = table ? table.moves : [];
+        if(piece.type === "pawn") { 
+            table = moveTable[color + "-" + piece.type];
+            moves = table.attack;
+        }
+        moves.forEach((move: number[]) => {
+            let position = toNumberPosition(piece.position);
+            do {
+                let dest = [position[0] + move[0], position[1] + move[1]];
+                if(dest[0] > 8 || dest[0] < 1 || dest[1] > 8 || dest[1] < 1) break;
+                let square = toBoardPosition(dest);
+                if(board[square]?.color === color) {
+                    protectedSquares.push(square);
+                    break;
+                }
+                else if(board[square] && board[square].type !== "king") break;  
+                protectedSquares.push(square);
+                position = dest;
+            } while(table.iterative);
+        })
+    }
+    return [...new Set(protectedSquares)];
+}   
 
 
 function pawnMove(pawn: Piece, board: Board, table: any) {
@@ -97,7 +131,6 @@ function pawnEnPassantMove(pawn: Piece, board: Board): number[] {
         let dest = [position[0], position[1] + move[1]];
         if(dest[0] > 8 || dest[0] < 1 || dest[1] > 8 || dest[1] < 1) return [];
         let square = toBoardPosition(dest);
-        console.log(square);
         if(board[square] && board[square].type === "pawn" && board[square].color != pawn.color) {   // TODO: should add board move count
             return dest;
         }
@@ -105,20 +138,11 @@ function pawnEnPassantMove(pawn: Piece, board: Board): number[] {
     return [];
 }
 
-function kingPreventedMoves(king: Piece, board: Board): string[] {
-    let pieces = Object.values(board);
-    let opponentPieceMoves: string[] = [];
-    for(let piece of pieces) {
-        if(!piece || piece.color === king.color || piece.type === "king") continue;
-        let possibleMoves = getPossibleMoves(piece, board);
-        if(piece.type === "pawn") {
-            let attackMoves = pawnAttackMoves(piece, board, moveTable[piece.color + '-' + piece.type]);
-            let attackMovePositions = attackMoves.map(attackMove => toBoardPosition(attackMove));
-            possibleMoves = attackMovePositions;
-        }
-        for(let possibleMove of possibleMoves) {
-            opponentPieceMoves.push(possibleMove);
-        }
-    }
-    return [...new Set(opponentPieceMoves)];
+function kingCastleMoves(king: Piece, board: Board): string[] {
+    if(king.moveCount !== 0) return [];
+    let pieces = Object.values(board).filter(notNull);
+    let rooks = pieces.filter(piece => piece.type === "rook" 
+                                && piece.color === king.color
+                                && piece.moveCount === 0);
+    return rooks.map(rook => rook.position);
 }
