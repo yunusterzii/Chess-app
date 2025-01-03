@@ -21,11 +21,21 @@
     background-color: rgba(235, 97, 80, 0.8);
 }
 
-.hint {
+.hintSquare {
     width: 100px;
     height: 100px;
     position: absolute;
-    background-color: rgba(31, 83, 161, 0.8);
+    background-color: transparent;
+    justify-content: center;
+    display: flex;
+    align-items: center;
+}
+
+.hintDot {
+    width: 25px;
+    height: 25px;
+    border-radius: 50%;
+    background-color: rgba(20, 85, 30, 0.5);
 }
 
 .check {
@@ -33,4 +43,16 @@
     height: 100px;
     position: absolute;
     background-color: rgba(216, 10, 44, 0.8);
+}
+
+.selectedPiece {
+    width: 100px;
+    height: 100px;
+    position: absolute;
+    background-color: rgba(20, 85, 30, 0.5);
+}
+
+.ghost {
+    background-color: red;
+    opacity: 1;
 }

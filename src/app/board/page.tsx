@@ -2,22 +2,32 @@
 
 import styles from "./styles.module.css";
 import { useRef, useState } from "react";
-import { getInitialBoard, squareToTranslate, coordinatesToSquare } from "@/utils/utils";
-import { getPossibleMoves } from "@/utils/move";
+import { renderToStaticMarkup } from "react-dom/server"
+import { getInitialBoard, squareToTranslate, coordinatesToSquare, createPiece } from "@/utils/utils";
+import { getPossibleMoves, isCheck, getPieces } from "@/utils/move";
 import { Piece, Board } from "../../../public/types/piece";
 import Image from "next/image";
 
 export default function BoardComponent() {
     const initialBoard: Board = getInitialBoard()
-    const selectedPiece = useRef<Piece>(null);
+    const imageRef: any = useRef(null);
+    const [selectedPiece, setSelectedPiece] = useState<Piece | null>(null);
     const playTurn = useRef<string>("white");
     const [board, setBoard] = useState<Board>(initialBoard);
     const [hintSquares, setHintSquares]: any = useState([]);
     const [highlightSquares, setHighlightSquares]: any = useState([]);
     const [checkSquare, setCheckSquare]: any = useState(null);
 
-    const handleDragStart = (piece: Piece) => (event: React.DragEvent<HTMLImageElement>) => {
+    const handleDragStart = (piece: Piece | null) => (event: React.DragEvent<HTMLImageElement>) => {
         event.dataTransfer.setData('application/json', JSON.stringify(piece));
+        // const ghost = <Image src={selectedPiece?.image} className={styles.ghost} alt="" fill></Image>;
+        // const output = document.createElement('p');
+        // const staticElement = renderToStaticMarkup(ghost);
+        // output.innerHTML = staticElement;
+        
+        // output.style.background = 'red';
+        // output.style.opacity = "1";
+        // event.dataTransfer.setDragImage(output, 0, 0);
     }
 
     const handleDragOver = (event: React.DragEvent<HTMLImageElement>) => {
@@ -31,7 +41,7 @@ export default function BoardComponent() {
         if (position) {
             makeMove(piece, position);
             setHintSquares([]);
-            selectedPiece.current = null;
+            setSelectedPiece(null);
         } 
     }
 
@@ -47,22 +57,24 @@ export default function BoardComponent() {
         setHighlightSquares([]);
     }
 
-    const handleMouseDown = (piece: Piece) => (event: React.MouseEvent) => {
-        if(piece.color !== playTurn.current) return;
+    const handleMouseDown = (piece: Piece | null) => (event: React.MouseEvent) => {
+        if(piece?.color !== playTurn.current) return;
         if(event.button === 0) {
-            if(selectedPiece.current === piece) {
+            if(selectedPiece === piece) {
                 setHintSquares([]);
-                selectedPiece.current = null;
+                setSelectedPiece(null);
                 return;
             };
-            selectedPiece.current = piece;
+            setSelectedPiece(piece);
             drawHintSquare(getPossibleMoves(piece, board));
         }
     }
 
     const drawHintSquare = (possibleMoves: string[]) => {
         setHintSquares(possibleMoves.map(square => board[square]?.type !== "king" &&
-            <div key={square} className={styles.hint} style={{transform: squareToTranslate(square)}}></div>
+            <div key={square} className={styles.hintSquare} style={{transform: squareToTranslate(square)}}>
+                <div className={styles.hintDot}></div>
+            </div>
         ));
     }
 
@@ -73,7 +85,14 @@ export default function BoardComponent() {
         if(piece.type === "king" && updatedBoard[position]?.type === "rook" && updatedBoard[position]?.color === piece.color) {
             handleCastle(piece, updatedBoard[position], updatedBoard);
         }
+        else if(piece.type === "pawn" && (position[1] === "1" || position[1] === "8")) { 
+            let queen = createPiece(position, "queen", piece.color);
+            updatedBoard[position] = queen;
+            updatedBoard[piece.position] = null;
+            queen.moveCount = piece.moveCount + 1;
+        }
         else {
+            console.log("girdi");
             updatedBoard[piece.position] = null;
             updatedBoard[position] = piece;
             piece.position = position;
@@ -81,7 +100,8 @@ export default function BoardComponent() {
         }
         setBoard({...updatedBoard});
         playTurn.current = playTurn.current === "white" ? "black" : "white";
-        checkControl(piece);
+        let color = piece.color === "white" ? "black" : "white";
+        checkControl(color, board);
     }
 
     const handleCastle = (king: Piece, rook: Piece, board: Board) => {
@@ -114,18 +134,11 @@ export default function BoardComponent() {
         board[king.position] = king;
     }
 
-    const checkControl = (piece: Piece) => {
-        for(let p of Object.values(board)) {
-            if(p === null || p.type === "king") continue;
-            if(p.color === piece.color) {
-                let possibleMoves = getPossibleMoves(p, board);
-                for(let square of possibleMoves) {
-                    if(board[square]?.type === "king") {
-                        setCheckSquare(<div key={square} className={styles.check} style={{transform: squareToTranslate(square)}}></div>);
-                        return;
-                    }
-                }
-            }
+    const checkControl = (color: string, board: Board) => {
+        if (isCheck(board, color)) {
+            let king = getPieces(board, color, "king")[0];
+            setCheckSquare(<div key={king.position} className={styles.check} style={{transform: squareToTranslate(king.position)}}></div>);
+            return;
         }
         setCheckSquare(null);
     }
@@ -153,6 +166,7 @@ export default function BoardComponent() {
                 {highlightSquares}
                 {hintSquares}
                 {checkSquare}
+                {selectedPiece && <div className={styles.selectedPiece} style={{transform: squareToTranslate(selectedPiece.position)}}></div>}
             </div>
         </div>
     )

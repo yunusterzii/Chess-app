@@ -12,7 +12,7 @@ const moveTable: any = {
     "black-pawn": {moves: [-1, 0], attack: [[-1, 1], [-1, -1]], doubleMove: [-2, 0], iterative: false},
     "castle": {"a1": ["b1", "c1"], "h1": ["e1", "f1", "g1"], "a8": ["b8", "c8"], "h8": ["e8", "f8", "g8"]}
 }
-export function getPossibleMoves(piece: Piece, board: Board): string[] {
+export function getPossibleMoves(piece: Piece, board: Board, protection: boolean = true): string[] {
     let possibleMoves: string[] = [];
     let table = moveTable[piece.type];
     let moves = table ? table.moves : [];
@@ -49,7 +49,28 @@ export function getPossibleMoves(piece: Piece, board: Board): string[] {
         possibleMoves = possibleMoves.filter(move => !preventedMoves.includes(move));
     }
 
+    if(protection) return possibleMoves.filter(move => kingProtection(piece, toNumberPosition(move), board));;
     return possibleMoves;
+}
+
+export function isCheck(board: Board, color: string): boolean {
+    let pieces = Object.values(board).filter(notNull);
+    for(let piece of pieces) {
+        if(piece.type === "king") continue;
+        if(piece.color !== color) {
+            let possibleMoves = getPossibleMoves(piece, board, false);
+            for(let square of possibleMoves) {
+                if(board[square]?.type === "king") {
+                    return true;
+                }
+            }
+        }
+    }
+    return false;
+}
+
+export function getPieces(board: Board, color: string, type: string): Piece[] { 
+    return Object.values(board).filter(notNull).filter(piece => piece.color === color && piece.type === type);
 }
 
 function getProtectedSquares(color: string, board: Board): string[] {
@@ -154,3 +175,17 @@ function kingCastleMoves(king: Piece, board: Board): string[] {
 
     return castleSquares;
 }
+
+function kingProtection(piece: Piece, move: number[], board: Board): boolean {
+    let boardCopy = {...board};
+    let position = toNumberPosition(piece.position);
+    let dest = [position[0] + move[0], position[1] + move[1]];
+    let square = toBoardPosition(dest);
+    boardCopy[piece.position] = null;
+    boardCopy[square] = piece;
+    if(isCheck(boardCopy, piece.color)) {
+        return false;
+    }
+    return true;
+}
+
