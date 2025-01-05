@@ -49,24 +49,30 @@ export function getPossibleMoves(piece: Piece, board: Board, protection: boolean
         possibleMoves = possibleMoves.filter(move => !preventedMoves.includes(move));
     }
 
-    if(protection) return possibleMoves.filter(move => kingProtection(piece, toNumberPosition(move), board));;
+    if(protection) return possibleMoves.filter(move => kingProtection(piece, move, board));
     return possibleMoves;
 }
 
 export function isCheck(board: Board, color: string): boolean {
-    let pieces = Object.values(board).filter(notNull);
+    let pieces = Object.values(board).filter(notNull).filter(piece => piece.color !== color && piece.type !== "king");
     for(let piece of pieces) {
-        if(piece.type === "king") continue;
-        if(piece.color !== color) {
-            let possibleMoves = getPossibleMoves(piece, board, false);
-            for(let square of possibleMoves) {
-                if(board[square]?.type === "king") {
-                    return true;
-                }
-            }
+        let possibleMoves = getPossibleMoves(piece, board, false);
+        for(let square of possibleMoves) {
+            if(board[square]?.type === "king") {
+                return true;
+            } 
         }
     }
     return false;
+}
+
+export function isCheckmate(board: Board, color: string): boolean {
+    let pieces = Object.values(board).filter(notNull).filter(piece => piece.color === color);
+    for(let piece of pieces) {
+        let possibleMoves = getPossibleMoves(piece, board);
+        if(possibleMoves.length) return false;
+    }
+    return true;
 }
 
 export function getPieces(board: Board, color: string, type: string): Piece[] { 
@@ -176,11 +182,8 @@ function kingCastleMoves(king: Piece, board: Board): string[] {
     return castleSquares;
 }
 
-function kingProtection(piece: Piece, move: number[], board: Board): boolean {
+function kingProtection(piece: Piece, square: string, board: Board): boolean {
     let boardCopy = {...board};
-    let position = toNumberPosition(piece.position);
-    let dest = [position[0] + move[0], position[1] + move[1]];
-    let square = toBoardPosition(dest);
     boardCopy[piece.position] = null;
     boardCopy[square] = piece;
     if(isCheck(boardCopy, piece.color)) {
